@@ -1,0 +1,2421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QR Shop - Shopkeeper</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f7;
+            color: #333;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Mobile App Container */
+        #appContainer {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            position: relative;
+        }
+
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px;
+            border-radius: 10px;
+            border: none;
+            background: none;
+            color: #6b7280;
+            font-size: 12px;
+            transition: all 0.3s;
+            width: 70px;
+        }
+
+        .nav-item.active {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .nav-item .icon {
+            font-size: 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 70px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: #f8fafc;
+            color: #475569;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 10px 16px;
+            font-size: 14px;
+            width: auto;
+        }
+
+        /* Form Inputs */
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background: #f8fafc;
+            margin-bottom: 16px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        /* QR Container */
+        .qr-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+
+        .qr-code {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        /* Product List */
+        .product-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .product-item {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+
+        .product-item:active {
+            transform: scale(0.98);
+        }
+
+        .product-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .product-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 24px;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-text-info {
+            flex: 1;
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-details {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .product-price {
+            color: #059669;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .product-qty {
+            color: #6b7280;
+            font-size: 12px;
+            background: #f1f5f9;
+            padding: 4px 8px;
+            border-radius: 20px;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #333;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        /* Orders List */
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .order-item {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .order-id {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .order-amount {
+            color: #059669;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .order-details {
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        /* Messages */
+        .message {
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 14px;
+            margin: 16px 0;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            color: #333;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .close-btn:active {
+            background: #f3f4f6;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            z-index: 1000;
+            animation: fadeInOut 3s ease;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            10%, 90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* Add Product Button */
+        .add-product-btn {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            cursor: pointer;
+            z-index: 99;
+            transition: all 0.3s;
+        }
+
+        .add-product-btn:active {
+            transform: scale(0.9);
+        }
+
+        /* Registration Form */
+        .registration-form {
+            display: none;
+        }
+
+        .toggle-form {
+            color: #667eea;
+            text-decoration: underline;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        /* Image Upload */
+        .image-upload-container {
+            border: 2px dashed #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 16px;
+            background: #f8fafc;
+        }
+
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 12px;
+            object-fit: cover;
+            margin: 0 auto 16px;
+            display: none;
+        }
+
+        .upload-btn {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .amazon-input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .amazon-input {
+            flex: 1;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 16px 0;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #10b981;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            border-radius: 8px;
+            color: #6b7280;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Image Source Options */
+        .image-source-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .source-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: #f8fafc;
+            cursor: pointer;
+        }
+
+        .source-option.active {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .source-icon {
+            font-size: 24px;
+            color: #667eea;
+        }
+
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #1a1a1a;
+                color: #f5f5f5;
+            }
+
+            #appContainer {
+                background: #1a1a1a;
+            }
+
+            .card {
+                background: #2a2a2a;
+            }
+
+            .card-title {
+                color: #f5f5f5;
+            }
+
+            .form-input {
+                background: #2a2a2a;
+                border-color: #444;
+                color: #f5f5f5;
+            }
+
+            .form-input:focus {
+                background: #333;
+            }
+
+            .stat-card, .product-item, .order-item {
+                background: #2a2a2a;
+            }
+
+            .product-name, .order-id, .stat-number {
+                color: #f5f5f5;
+            }
+
+            .qr-container {
+                background: #2a2a2a;
+            }
+
+            .modal-content {
+                background: #2a2a2a;
+            }
+
+            .modal-title {
+                color: #f5f5f5;
+            }
+
+            .image-upload-container {
+                background: #2a2a2a;
+                border-color: #444;
+            }
+
+            .source-option {
+                background: #2a2a2a;
+                border-color: #444;
+            }
+        }
+
+        /* Optimized Loading */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-product {
+            height: 80px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-stat {
+            height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div id="appContainer">
+        <!-- App content will be dynamically rendered here -->
+    </div>
+
+    <script type="module">
+        // Firebase imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import {
+            getDatabase,
+            ref,
+            set,
+            push,
+            onValue,
+            remove,
+            get,
+            update
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import {
+            getStorage,
+            ref as storageRef,
+            uploadBytes,
+            getDownloadURL
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCzQYASGy_TlsnNHeVcYRrlEaOKKfQCuLA",
+            authDomain: "shop-8666a.firebaseapp.com",
+            databaseURL: "https://shop-8666a-default-rtdb.firebaseio.com",
+            projectId: "shop-8666a",
+            storageBucket: "shop-8666a.firebasestorage.app",
+            messagingSenderId: "435332345706",
+            appId: "1:435332345706:web:09bbde85c847b369513f13",
+            measurementId: "G-7JFQZK21EC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        const storage = getStorage(app);
+
+        // State
+        let currentUser = null;
+        let currentTab = 'dashboard';
+        let shopOrders = [];
+        let selectedImageFile = null;
+        let currentProductId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Mobile Shopkeeper app loaded');
+            showLoadingScreen();
+            checkAuthState();
+            setupServiceWorker();
+        });
+
+        function showLoadingScreen() {
+            appContainer.innerHTML = `
+                <div style="height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div style="text-align: center; color: white;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🏪</div>
+                        <div style="font-size: 24px; font-weight: 600; margin-bottom: 10px;">QR Shop Manager</div>
+                        <div style="font-size: 14px; opacity: 0.8;">Loading...</div>
+                        <div style="margin-top: 30px;">
+                            <div class="spinner" style="border-top-color: white;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function setupServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').catch(console.error);
+            }
+        }
+
+        function checkAuthState() {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    checkUserType(user.uid).then(isShopkeeper => {
+                        if (isShopkeeper) {
+                            currentUser = user;
+                            showMainApp();
+                        } else {
+                            showToast('This account is not registered as a shopkeeper');
+                            signOut(auth);
+                        }
+                    });
+                } else {
+                    currentUser = null;
+                    showLogin();
+                }
+            });
+        }
+
+        async function checkUserType(userId) {
+            try {
+                const snapshot = await get(ref(db, 'shopkeepers/' + userId));
+                return snapshot.exists();
+            } catch (error) {
+                console.error('Error checking user type:', error);
+                return false;
+            }
+        }
+
+        // UI Functions
+        function showLogin() {
+            appContainer.innerHTML = `
+                <div class="app-header">
+                    <div class="header-title">
+                        🏪 Shop Manager
+                    </div>
+                </div>
+                <div class="main-content">
+                    <!-- Login Form -->
+                    <div id="loginForm" class="card">
+                        <div class="card-title">🔐 Shopkeeper Login</div>
+                        <p style="color: #6b7280; margin-bottom: 16px;">Manage your shop and products</p>
+                        <input type="email" id="email" placeholder="Email" class="form-input">
+                        <input type="password" id="password" placeholder="Password" class="form-input">
+                        <button onclick="loginShopkeeper()" class="btn btn-primary">Login</button>
+                        <div class="toggle-form" onclick="showRegistrationForm()">
+                            New Shopkeeper? Register Here
+                        </div>
+                        <div id="authMessage" class="message"></div>
+                    </div>
+
+                    <!-- Registration Form -->
+                    <div id="registrationForm" class="card" style="display: none;">
+                        <div class="card-title">📝 Shopkeeper Registration</div>
+                        <input type="text" id="regShopName" placeholder="Shop Name" class="form-input">
+                        <input type="email" id="regEmail" placeholder="Email" class="form-input">
+                        <input type="password" id="regPassword" placeholder="Password" class="form-input">
+                        <input type="tel" id="regPhone" placeholder="Phone Number" class="form-input">
+                        <input type="text" id="regAddress" placeholder="Shop Address" class="form-input">
+                        <button onclick="registerShopkeeper()" class="btn btn-success">Register Shop</button>
+                        <div class="toggle-form" onclick="showLoginForm()">
+                            Already have an account? Login Here
+                        </div>
+                        <div id="regMessage" class="message"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🚀 Quick Start</div>
+                        <p style="color: #6b7280; margin-bottom: 16px;">Test with demo account:</p>
+                        <div style="background: #f8fafc; padding: 12px; border-radius: 12px; margin-bottom: 16px;">
+                            <div style="color: #6b7280; font-size: 12px;">Email: shopkeeper@example.com</div>
+                            <div style="color: #6b7280; font-size: 12px;">Password: shop123</div>
+                        </div>
+                        <button onclick="quickLogin()" class="btn btn-success">Quick Login</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showRegistrationForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registrationForm').style.display = 'block';
+        }
+
+        function showLoginForm() {
+            document.getElementById('registrationForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        function showMainApp() {
+            appContainer.innerHTML = `
+                <div class="app-header">
+                    <div class="header-title">
+                        🏪 My Shop
+                    </div>
+                    <div class="header-actions">
+                        <button onclick="logout()" class="btn btn-small" style="background: none; border: none; color: white; padding: 8px;">Logout</button>
+                    </div>
+                </div>
+
+                <div class="main-content" id="mainContent">
+                    <!-- Content will be loaded here -->
+                </div>
+
+                <div class="bottom-nav">
+                    <button class="nav-item ${currentTab === 'dashboard' ? 'active' : ''}" onclick="showTab('dashboard')">
+                        <span class="icon">📊</span>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="nav-item ${currentTab === 'products' ? 'active' : ''}" onclick="showTab('products')">
+                        <span class="icon">📦</span>
+                        <span>Products</span>
+                    </button>
+                    <button class="nav-item ${currentTab === 'orders' ? 'active' : ''}" onclick="showTab('orders')">
+                        <span class="icon">📋</span>
+                        <span>Orders</span>
+                    </button>
+                    <button class="nav-item ${currentTab === 'qr' ? 'active' : ''}" onclick="showTab('qr')">
+                        <span class="icon">📱</span>
+                        <span>QR Codes</span>
+                    </button>
+                </div>
+
+                ${currentTab === 'products' ? `
+                    <button class="add-product-btn" onclick="showAddProductModal()">
+                        ➕
+                    </button>
+                ` : ''}
+            `;
+
+            loadTabContent();
+        }
+
+        function showTab(tab) {
+            currentTab = tab;
+            showMainApp();
+        }
+
+        function loadTabContent() {
+            const mainContent = document.getElementById('mainContent');
+
+            switch(currentTab) {
+                case 'dashboard':
+                    showDashboardContent();
+                    break;
+                case 'products':
+                    showProductsContent();
+                    break;
+                case 'orders':
+                    showOrdersContent();
+                    break;
+                case 'qr':
+                    showQRContent();
+                    break;
+            }
+        }
+
+        function showDashboardContent() {
+            const mainContent = document.getElementById('mainContent');
+            mainContent.innerHTML = `
+                <div class="card">
+                    <div class="card-title">📊 Shop Dashboard</div>
+                    <p style="color: #6b7280; margin-bottom: 16px;">Welcome back! Here's your shop overview.</p>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="productCount">0</div>
+                            <div class="stat-label">Products</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalStock">0</div>
+                            <div class="stat-label">Total Stock</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="orderCount">0</div>
+                            <div class="stat-label">Orders</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="revenueCount">₹0</div>
+                            <div class="stat-label">Revenue</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📈 Quick Actions</div>
+                    <button onclick="showTab('products')" class="btn btn-secondary" style="margin-bottom: 12px;">
+                        📦 Manage Products
+                    </button>
+                    <button onclick="showTab('qr')" class="btn btn-secondary" style="margin-bottom: 12px;">
+                        📱 Generate QR Codes
+                    </button>
+                    <button onclick="showTab('orders')" class="btn btn-secondary">
+                        📋 View Orders
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📋 Recent Orders</div>
+                    <div id="recentOrders" class="orders-list">
+                        <div class="skeleton skeleton-product"></div>
+                        <div class="skeleton skeleton-product"></div>
+                    </div>
+                </div>
+            `;
+
+            // Load data without delay
+            loadStats();
+            loadRecentOrders();
+        }
+
+        function showProductsContent() {
+            const mainContent = document.getElementById('mainContent');
+            mainContent.innerHTML = `
+                <div class="card">
+                    <div class="card-title">📦 My Products</div>
+                    <p style="color: #6b7280; margin-bottom: 16px;">Manage your shop products</p>
+
+                    <div class="product-list" id="productList">
+                        <div class="skeleton skeleton-product"></div>
+                        <div class="skeleton skeleton-product"></div>
+                        <div class="skeleton skeleton-product"></div>
+                    </div>
+                </div>
+            `;
+
+            loadProducts();
+        }
+
+        function showOrdersContent() {
+            const mainContent = document.getElementById('mainContent');
+            mainContent.innerHTML = `
+                <div class="card">
+                    <div class="card-title">📋 All Orders</div>
+                    <p style="color: #6b7280; margin-bottom: 16px;">View and manage customer orders</p>
+
+                    <div class="orders-list" id="ordersList">
+                        <div class="skeleton skeleton-product"></div>
+                        <div class="skeleton skeleton-product"></div>
+                    </div>
+                </div>
+            `;
+
+            loadAllOrders();
+        }
+
+        function showQRContent() {
+            const mainContent = document.getElementById('mainContent');
+            mainContent.innerHTML = `
+                <div class="card">
+                    <div class="card-title">📱 QR Codes</div>
+                    <p style="color: #6b7280; margin-bottom: 16px;">Generate QR codes for your shop and products</p>
+
+                    <div class="qr-container">
+                        <div style="text-align: center; margin-bottom: 16px;">
+                            <div style="font-size: 48px; color: #667eea;">🏪</div>
+                            <div style="font-weight: 600; font-size: 16px; margin: 8px 0;">Shop QR Code</div>
+                            <div style="color: #6b7280; font-size: 12px;">Customers scan this to browse your shop</div>
+                        </div>
+
+                        <div id="shopQR" class="qr-code"></div>
+
+                        <button onclick="downloadShopQR()" class="btn btn-primary">
+                            📥 Download Shop QR
+                        </button>
+                        <button onclick="shareShopQR()" class="btn btn-secondary" style="margin-top: 10px;">
+                            📤 Share QR Code
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📦 Product QR Codes</div>
+                    <p style="color: #6b7280; margin-bottom: 16px;">Generate QR codes for individual products</p>
+
+                    <div id="productQRList" class="product-list">
+                        <div class="skeleton skeleton-product"></div>
+                        <div class="skeleton skeleton-product"></div>
+                    </div>
+                </div>
+            `;
+
+            generateShopQR();
+            loadProductsForQR();
+        }
+
+        // Data Functions
+        function generateShopQR() {
+            if (!currentUser) return;
+
+            const shopUrl = window.location.origin + '/customer.html?shop=' + currentUser.uid;
+            const shopQRDiv = document.getElementById('shopQR');
+            if (shopQRDiv) {
+                shopQRDiv.innerHTML = '';
+                new QRCode(shopQRDiv, {
+                    text: shopUrl,
+                    width: 180,
+                    height: 180,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+        }
+
+        function loadProducts() {
+            if (!currentUser) return;
+
+            const productList = document.getElementById('productList');
+            if (!productList) return;
+
+            const productsRef = ref(db, 'products/' + currentUser.uid);
+            onValue(productsRef, (snapshot) => {
+                if (!snapshot.exists()) {
+                    productList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📦</div>
+                            <p>No products yet</p>
+                            <button onclick="showAddProductModal()" class="btn btn-primary" style="margin-top: 16px;">Add First Product</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let productsHtml = '';
+                snapshot.forEach((childSnapshot) => {
+                    const productId = childSnapshot.key;
+                    const product = childSnapshot.val();
+
+                    productsHtml += `
+                        <div class="product-item">
+                            <div class="product-info">
+                                <div class="product-image">
+                                    ${product.imageUrl ?
+                                        `<img src="${product.imageUrl}" alt="${product.name}" onerror="this.parentElement.innerHTML='📦';">` :
+                                        '📦'}
+                                </div>
+                                <div class="product-text-info">
+                                    <div class="product-name">${product.name}</div>
+                                    <div class="product-details">
+                                        <span class="product-price">₹${product.price}</span>
+                                        <span class="product-qty">Stock: ${product.qty}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="product-actions">
+                                <button onclick="editProduct('${productId}')" class="btn btn-small btn-secondary">Edit</button>
+                                <button onclick="viewProductQR('${productId}', '${product.name}', ${product.price}, ${product.qty})" class="btn btn-small">QR</button>
+                                <button onclick="deleteProduct('${productId}')" class="btn btn-small btn-danger">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                productList.innerHTML = productsHtml;
+            }, { onlyOnce: true });
+        }
+
+        function loadProductsForQR() {
+            if (!currentUser) return;
+
+            const productQRList = document.getElementById('productQRList');
+            if (!productQRList) return;
+
+            const productsRef = ref(db, 'products/' + currentUser.uid);
+            onValue(productsRef, (snapshot) => {
+                if (!snapshot.exists()) {
+                    productQRList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📦</div>
+                            <p>No products yet</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let productsHtml = '';
+                snapshot.forEach((childSnapshot) => {
+                    const productId = childSnapshot.key;
+                    const product = childSnapshot.val();
+
+                    productsHtml += `
+                        <div class="product-item">
+                            <div class="product-info">
+                                <div class="product-image">
+                                    ${product.imageUrl ?
+                                        `<img src="${product.imageUrl}" alt="${product.name}" onerror="this.parentElement.innerHTML='📦';">` :
+                                        '📦'}
+                                </div>
+                                <div class="product-text-info">
+                                    <div class="product-name">${product.name}</div>
+                                    <div class="product-details">
+                                        <span class="product-price">₹${product.price}</span>
+                                        <span class="product-qty">Stock: ${product.qty}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="product-actions">
+                                <button onclick="generateProductQR('${productId}', '${product.name}', ${product.price})" class="btn btn-primary btn-small">
+                                    Generate QR
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                productQRList.innerHTML = productsHtml;
+            }, { onlyOnce: true });
+        }
+
+        async function loadStats() {
+            if (!currentUser) return;
+
+            try {
+                // Load product stats
+                const productsRef = ref(db, 'products/' + currentUser.uid);
+                const snapshot = await get(productsRef);
+
+                let productCount = 0;
+                let totalStock = 0;
+                let totalValue = 0;
+
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        const product = childSnapshot.val();
+                        productCount++;
+                        totalStock += parseInt(product.qty) || 0;
+                        totalValue += (parseFloat(product.price) || 0) * (parseInt(product.qty) || 0);
+                    });
+                }
+
+                document.getElementById('productCount').textContent = productCount;
+                document.getElementById('totalStock').textContent = totalStock;
+
+                // Load order stats
+                await loadOrderStats();
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadOrderStats() {
+            if (!currentUser) return;
+
+            try {
+                const ordersRef = ref(db, 'orders');
+                const snapshot = await get(ordersRef);
+
+                let orderCount = 0;
+                let revenue = 0;
+                shopOrders = [];
+
+                if (snapshot.exists()) {
+                    snapshot.forEach((customerSnapshot) => {
+                        customerSnapshot.forEach((orderSnapshot) => {
+                            const order = orderSnapshot.val();
+                            // Check if any item belongs to this shop
+                            if (order.items && Array.isArray(order.items)) {
+                                const shopItems = order.items.filter(item => item.shopId === currentUser.uid);
+                                if (shopItems.length > 0) {
+                                    orderCount++;
+                                    revenue += shopItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                                    shopOrders.push({
+                                        id: orderSnapshot.key,
+                                        ...order,
+                                        shopItems: shopItems
+                                    });
+                                }
+                            }
+                        });
+                    });
+                }
+
+                document.getElementById('orderCount').textContent = orderCount;
+                document.getElementById('revenueCount').textContent = '₹' + revenue;
+            } catch (error) {
+                console.error('Error loading order stats:', error);
+            }
+        }
+
+        function loadRecentOrders() {
+            if (!currentUser) return;
+
+            const recentOrders = document.getElementById('recentOrders');
+            if (!recentOrders) return;
+
+            if (shopOrders.length === 0) {
+                recentOrders.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>No orders yet</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort by timestamp (newest first) and take first 3
+            const sortedOrders = [...shopOrders].sort((a, b) => b.timestamp - a.timestamp).slice(0, 3);
+
+            let ordersHtml = '';
+            sortedOrders.forEach(order => {
+                const orderAmount = order.shopItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                ordersHtml += `
+                    <div class="order-item">
+                        <div class="order-header">
+                            <div class="order-id">Order #${order.id.substring(0, 6)}</div>
+                            <div class="order-amount">₹${orderAmount}</div>
+                        </div>
+                        <div class="order-details">
+                            ${new Date(order.timestamp).toLocaleDateString()} • ${order.customerName || 'Customer'} • ${order.shopItems.length} items
+                        </div>
+                        <button onclick="viewOrderDetails('${order.id}')" class="btn btn-small" style="margin-top: 8px; width: 100%;">View Details</button>
+                    </div>
+                `;
+            });
+
+            recentOrders.innerHTML = ordersHtml;
+        }
+
+        function loadAllOrders() {
+            if (!currentUser) return;
+
+            const ordersList = document.getElementById('ordersList');
+            if (!ordersList) return;
+
+            if (shopOrders.length === 0) {
+                ordersList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>No orders yet</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort by timestamp (newest first)
+            const sortedOrders = [...shopOrders].sort((a, b) => b.timestamp - a.timestamp);
+
+            let ordersHtml = '';
+            sortedOrders.forEach(order => {
+                const orderAmount = order.shopItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                ordersHtml += `
+                    <div class="order-item">
+                        <div class="order-header">
+                            <div class="order-id">Order #${order.id.substring(0, 8)}</div>
+                            <div class="order-amount">₹${orderAmount}</div>
+                        </div>
+                        <div class="order-details">
+                            ${new Date(order.timestamp).toLocaleDateString()} ${new Date(order.timestamp).toLocaleTimeString()}
+                        </div>
+                        <div class="order-details">
+                            ${order.customerName || 'Customer'} • ${order.shopItems.length} items • ${order.paymentMethod || 'N/A'}
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <button onclick="viewOrderDetails('${order.id}')" class="btn btn-small" style="flex: 1;">Details</button>
+                            <button onclick="generateOrderBill('${order.id}')" class="btn btn-small btn-success" style="flex: 1;">Bill</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            ordersList.innerHTML = ordersHtml;
+        }
+
+        // Modal Functions
+        function showAddProductModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="modal-title">➕ Add New Product</div>
+                        <button class="close-btn" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                    </div>
+
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchImageSource('manual')">Manual</button>
+                        <button class="tab" onclick="switchImageSource('amazon')">Amazon Import</button>
+                    </div>
+
+                    <div id="manualProductForm">
+                        <input type="text" id="pname" placeholder="Product Name" class="form-input">
+                        <input type="number" id="price" placeholder="Price (₹)" class="form-input">
+                        <input type="number" id="qty" placeholder="Quantity" class="form-input">
+
+                        <div class="image-source-options">
+                            <div class="source-option active" onclick="selectImageSource('upload')">
+                                <div class="source-icon">📤</div>
+                                <div>
+                                    <div style="font-weight: 600;">Upload Image</div>
+                                    <div style="font-size: 12px; color: #6b7280;">Upload from your device</div>
+                                </div>
+                            </div>
+                            <div class="source-option" onclick="selectImageSource('url')">
+                                <div class="source-icon">🔗</div>
+                                <div>
+                                    <div style="font-weight: 600;">Image URL</div>
+                                    <div style="font-size: 12px; color: #6b7280;">Enter image URL</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="imageUploadSection" style="display: block;">
+                            <div class="image-upload-container">
+                                <img id="imagePreview" class="image-preview">
+                                <button class="upload-btn" onclick="document.getElementById('imageInput').click()">
+                                    <i class="fas fa-camera"></i> Choose Image
+                                </button>
+                                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                            </div>
+                        </div>
+
+                        <div id="imageUrlSection" style="display: none;">
+                            <input type="url" id="imageUrl" placeholder="Enter image URL" class="form-input">
+                            <div id="urlPreview" class="image-upload-container" style="display: none;">
+                                <img id="urlImagePreview" class="image-preview">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="amazonProductForm" style="display: none;">
+                        <div class="amazon-input-container">
+                            <input type="url" id="amazonUrl" placeholder="Paste Amazon product URL" class="form-input amazon-input">
+                            <button onclick="scrapeAmazonProduct()" class="btn btn-primary" style="width: auto;">Scrape</button>
+                        </div>
+                        <div id="amazonScraping" style="display: none;">
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="scrapingProgress"></div>
+                                </div>
+                                <div class="progress-text" id="scrapingStatus">Scraping product data...</div>
+                            </div>
+                        </div>
+                        <div id="amazonPreview" style="display: none;">
+                            <!-- Amazon product preview will be shown here -->
+                        </div>
+                    </div>
+
+                    <div id="productMessage" class="message"></div>
+
+                    <button onclick="addProduct()" class="btn btn-primary">Add Product</button>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Add event listener for URL input
+            setTimeout(() => {
+                const urlInput = document.getElementById('imageUrl');
+                if (urlInput) {
+                    urlInput.addEventListener('input', function() {
+                        const urlPreview = document.getElementById('urlPreview');
+                        const urlImagePreview = document.getElementById('urlImagePreview');
+
+                        if (this.value) {
+                            urlImagePreview.src = this.value;
+                            urlImagePreview.style.display = 'block';
+                            urlPreview.style.display = 'block';
+                        } else {
+                            urlPreview.style.display = 'none';
+                        }
+                    });
+                }
+            }, 100);
+        }
+
+        function switchImageSource(source) {
+            const manualForm = document.getElementById('manualProductForm');
+            const amazonForm = document.getElementById('amazonProductForm');
+            const tabs = document.querySelectorAll('.tab');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (source === 'manual') {
+                manualForm.style.display = 'block';
+                amazonForm.style.display = 'none';
+            } else {
+                manualForm.style.display = 'none';
+                amazonForm.style.display = 'block';
+            }
+        }
+
+        function selectImageSource(source) {
+            const options = document.querySelectorAll('.source-option');
+            options.forEach(opt => opt.classList.remove('active'));
+            event.target.closest('.source-option').classList.add('active');
+
+            const uploadSection = document.getElementById('imageUploadSection');
+            const urlSection = document.getElementById('imageUrlSection');
+
+            if (source === 'upload') {
+                uploadSection.style.display = 'block';
+                urlSection.style.display = 'none';
+            } else {
+                uploadSection.style.display = 'none';
+                urlSection.style.display = 'block';
+            }
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.match('image.*')) {
+                showToast('Please select an image file');
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                showToast('Image size should be less than 5MB');
+                return;
+            }
+
+            selectedImageFile = file;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('imagePreview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function scrapeAmazonProduct() {
+            const urlInput = document.getElementById('amazonUrl');
+            const url = urlInput.value.trim();
+
+            if (!url || !url.includes('amazon.')) {
+                showToast('Please enter a valid Amazon product URL');
+                return;
+            }
+
+            const scrapingSection = document.getElementById('amazonScraping');
+            const previewSection = document.getElementById('amazonPreview');
+            const progressBar = document.getElementById('scrapingProgress');
+            const statusText = document.getElementById('scrapingStatus');
+
+            scrapingSection.style.display = 'block';
+            previewSection.style.display = 'none';
+
+            // Simulate scraping progress
+            progressBar.style.width = '0%';
+            statusText.textContent = 'Connecting to Amazon...';
+
+            setTimeout(() => {
+                progressBar.style.width = '30%';
+                statusText.textContent = 'Fetching product details...';
+            }, 500);
+
+            setTimeout(() => {
+                progressBar.style.width = '60%';
+                statusText.textContent = 'Extracting images...';
+            }, 1000);
+
+            try {
+                // Using a CORS proxy to avoid cross-origin issues
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const response = await fetch(proxyUrl + url);
+                const html = await response.text();
+
+                // Parse HTML to extract product details
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // Extract product name (different selectors for different Amazon sites)
+                const nameSelectors = [
+                    '#productTitle',
+                    '.product-title',
+                    '.a-size-large',
+                    'h1'
+                ];
+
+                let productName = '';
+                for (const selector of nameSelectors) {
+                    const element = doc.querySelector(selector);
+                    if (element && element.textContent.trim()) {
+                        productName = element.textContent.trim();
+                        break;
+                    }
+                }
+
+                // Extract price
+                const priceSelectors = [
+                    '.a-price-whole',
+                    '.priceBlockBuyingPriceString',
+                    '.a-color-price',
+                    '.offer-price'
+                ];
+
+                let price = '';
+                for (const selector of priceSelectors) {
+                    const element = doc.querySelector(selector);
+                    if (element && element.textContent.trim()) {
+                        price = element.textContent.replace(/[^\d.]/g, '');
+                        break;
+                    }
+                }
+
+                // Extract image
+                const imageSelectors = [
+                    '#landingImage',
+                    '.imgTagWrapper img',
+                    '.a-dynamic-image',
+                    '#main-image'
+                ];
+
+                let imageUrl = '';
+                for (const selector of imageSelectors) {
+                    const element = doc.querySelector(selector);
+                    if (element && element.src) {
+                        imageUrl = element.src;
+                        break;
+                    }
+                }
+
+                setTimeout(() => {
+                    progressBar.style.width = '100%';
+                    statusText.textContent = 'Complete!';
+
+                    // Show preview
+                    previewSection.innerHTML = `
+                        <div class="image-upload-container">
+                            <img src="${imageUrl || ''}" class="image-preview" style="display: ${imageUrl ? 'block' : 'none'};" onerror="this.style.display='none'">
+                            ${!imageUrl ? '<div style="font-size: 48px; color: #94a3b8;">📦</div>' : ''}
+                        </div>
+                        <input type="text" id="scrapedName" placeholder="Product Name" class="form-input" value="${productName.substring(0, 100)}">
+                        <input type="number" id="scrapedPrice" placeholder="Price (₹)" class="form-input" value="${parseInt(price) || ''}">
+                        <input type="number" id="scrapedQty" placeholder="Quantity" class="form-input" value="1">
+                        <input type="hidden" id="scrapedImageUrl" value="${imageUrl}">
+                    `;
+
+                    previewSection.style.display = 'block';
+
+                    // Fill the form
+                    setTimeout(() => {
+                        document.getElementById('pname').value = productName.substring(0, 100);
+                        document.getElementById('price').value = parseInt(price) || '';
+                        document.getElementById('qty').value = 1;
+
+                        if (imageUrl) {
+                            document.getElementById('imageUrl').value = imageUrl;
+                            const urlImagePreview = document.getElementById('urlImagePreview');
+                            if (urlImagePreview) {
+                                urlImagePreview.src = imageUrl;
+                                urlImagePreview.style.display = 'block';
+                            }
+                            const urlPreview = document.getElementById('urlPreview');
+                            if (urlPreview) urlPreview.style.display = 'block';
+                        }
+
+                        // Switch back to manual tab with filled data
+                        const tabs = document.querySelectorAll('.tab');
+                        tabs.forEach(tab => tab.classList.remove('active'));
+                        tabs[0].classList.add('active');
+                        document.getElementById('manualProductForm').style.display = 'block';
+                        document.getElementById('amazonProductForm').style.display = 'none';
+
+                        showToast('Amazon product data imported successfully!');
+                    }, 500);
+
+                }, 500);
+
+            } catch (error) {
+                console.error('Amazon scraping error:', error);
+                statusText.textContent = 'Error scraping product. Please try manual entry.';
+                progressBar.style.backgroundColor = '#ef4444';
+
+                setTimeout(() => {
+                    scrapingSection.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        function showEditProductModal(productId) {
+            currentProductId = productId;
+
+            // Fetch product details
+            get(ref(db, 'products/' + currentUser.uid + '/' + productId)).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const product = snapshot.val();
+
+                    const modal = document.createElement('div');
+                    modal.className = 'modal-overlay';
+                    modal.innerHTML = `
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <div class="modal-title">✏️ Edit Product</div>
+                                <button class="close-btn" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                            </div>
+
+                            <input type="text" id="editPname" placeholder="Product Name" class="form-input" value="${product.name || ''}">
+                            <input type="number" id="editPrice" placeholder="Price (₹)" class="form-input" value="${product.price || ''}">
+                            <input type="number" id="editQty" placeholder="Quantity" class="form-input" value="${product.qty || ''}">
+
+                            <div class="image-source-options">
+                                <div class="source-option ${product.imageUrl ? '' : 'active'}" onclick="selectEditImageSource('upload')">
+                                    <div class="source-icon">📤</div>
+                                    <div>
+                                        <div style="font-weight: 600;">Upload Image</div>
+                                        <div style="font-size: 12px; color: #6b7280;">Upload from your device</div>
+                                    </div>
+                                </div>
+                                <div class="source-option ${product.imageUrl ? 'active' : ''}" onclick="selectEditImageSource('url')">
+                                    <div class="source-icon">🔗</div>
+                                    <div>
+                                        <div style="font-weight: 600;">Image URL</div>
+                                        <div style="font-size: 12px; color: #6b7280;">Enter image URL</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="editImageUploadSection" style="display: ${product.imageUrl ? 'none' : 'block'};">
+                                <div class="image-upload-container">
+                                    <img id="editImagePreview" class="image-preview" ${selectedImageFile ? 'style="display: block;"' : ''}>
+                                    ${product.imageUrl ? `<img src="${product.imageUrl}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 12px; margin-bottom: 16px;">` : ''}
+                                    <button class="upload-btn" onclick="document.getElementById('editImageInput').click()">
+                                        <i class="fas fa-camera"></i> Choose Image
+                                    </button>
+                                    <input type="file" id="editImageInput" accept="image/*" style="display: none;" onchange="handleEditImageUpload(event)">
+                                </div>
+                            </div>
+
+                            <div id="editImageUrlSection" style="display: ${product.imageUrl ? 'block' : 'none'};">
+                                <input type="url" id="editImageUrl" placeholder="Enter image URL" class="form-input" value="${product.imageUrl || ''}">
+                                <div id="editUrlPreview" class="image-upload-container" style="${product.imageUrl ? 'display: block;' : 'display: none;'}">
+                                    <img id="editUrlImagePreview" class="image-preview" src="${product.imageUrl || ''}" ${product.imageUrl ? 'style="display: block;"' : ''}>
+                                </div>
+                            </div>
+
+                            <div id="editProductMessage" class="message"></div>
+
+                            <button onclick="updateProduct()" class="btn btn-primary">Update Product</button>
+                        </div>
+                    `;
+
+                    document.body.appendChild(modal);
+
+                    // Add event listener for URL input
+                    setTimeout(() => {
+                        const urlInput = document.getElementById('editImageUrl');
+                        if (urlInput) {
+                            urlInput.addEventListener('input', function() {
+                                const urlPreview = document.getElementById('editUrlPreview');
+                                const urlImagePreview = document.getElementById('editUrlImagePreview');
+
+                                if (this.value) {
+                                    urlImagePreview.src = this.value;
+                                    urlImagePreview.style.display = 'block';
+                                    urlPreview.style.display = 'block';
+                                } else {
+                                    urlPreview.style.display = 'none';
+                                }
+                            });
+                        }
+                    }, 100);
+                }
+            });
+        }
+
+        function selectEditImageSource(source) {
+            const options = document.querySelectorAll('.source-option');
+            options.forEach(opt => opt.classList.remove('active'));
+            event.target.closest('.source-option').classList.add('active');
+
+            const uploadSection = document.getElementById('editImageUploadSection');
+            const urlSection = document.getElementById('editImageUrlSection');
+
+            if (source === 'upload') {
+                uploadSection.style.display = 'block';
+                urlSection.style.display = 'none';
+            } else {
+                uploadSection.style.display = 'none';
+                urlSection.style.display = 'block';
+            }
+        }
+
+        function handleEditImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.match('image.*')) {
+                showToast('Please select an image file');
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Image size should be less than 5MB');
+                return;
+            }
+
+            selectedImageFile = file;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('editImagePreview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function generateProductQR(productId, productName, productPrice) {
+            if (!currentUser) return;
+
+            const productUrl = window.location.origin + '/customer.html?product=' + productId + '&shop=' + currentUser.uid;
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="modal-title">📦 ${productName}</div>
+                        <button class="close-btn" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                    </div>
+
+                    <div style="text-align: center; padding: 20px;">
+                        <div id="productQRCode" class="qr-code" style="margin: 0 auto;"></div>
+                        <div style="margin-top: 16px;">
+                            <div style="font-weight: 600; font-size: 16px;">${productName}</div>
+                            <div style="color: #059669; font-weight: 700; font-size: 18px; margin: 8px 0;">₹${productPrice}</div>
+                            <div style="color: #6b7280; font-size: 12px;">Scan to add to cart</div>
+                        </div>
+                    </div>
+
+                    <button onclick="downloadProductQR('${productId}', '${productName}')" class="btn btn-primary">
+                        📥 Download QR
+                    </button>
+                    <button onclick="shareProductQR('${productId}', '${productName}')" class="btn btn-secondary" style="margin-top: 10px;">
+                        📤 Share QR
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Generate QR
+            setTimeout(() => {
+                const qrDiv = document.getElementById('productQRCode');
+                if (qrDiv) {
+                    qrDiv.innerHTML = '';
+                    new QRCode(qrDiv, {
+                        text: productUrl,
+                        width: 200,
+                        height: 200,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                    });
+                }
+            }, 100);
+        }
+
+        function viewOrderDetails(orderId) {
+            const order = shopOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const orderAmount = order.shopItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="modal-title">📋 Order Details</div>
+                        <button class="close-btn" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                    </div>
+
+                    <div style="background: #f8fafc; padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <div style="font-weight: 600;">Order ID:</div>
+                            <div>${order.id.substring(0, 12)}</div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <div style="font-weight: 600;">Date:</div>
+                            <div>${new Date(order.timestamp).toLocaleString()}</div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <div style="font-weight: 600;">Customer:</div>
+                            <div>${order.customerName || 'N/A'}</div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <div style="font-weight: 600;">Payment:</div>
+                            <div>${order.paymentMethod || 'N/A'}</div>
+                        </div>
+                    </div>
+
+                    <div class="card-title">📦 Order Items</div>
+                    <div class="orders-list" style="max-height: 200px;">
+                        ${order.shopItems.map(item => `
+                            <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 8px;">
+                                <div style="font-weight: 600; font-size: 14px;">${item.name}</div>
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6b7280; margin-top: 4px;">
+                                    <div>Qty: ${item.quantity} × ₹${item.price}</div>
+                                    <div>₹${item.price * item.quantity}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div style="background: #f8fafc; padding: 16px; border-radius: 12px; margin: 16px 0;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 18px;">
+                            <div>Total Amount:</div>
+                            <div style="color: #059669;">₹${orderAmount}</div>
+                        </div>
+                    </div>
+
+                    <button onclick="generateOrderBill('${orderId}')" class="btn btn-success">
+                        📄 Generate Bill
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        // Business Logic Functions
+        async function registerShopkeeper() {
+            const shopName = document.getElementById('regShopName')?.value;
+            const email = document.getElementById('regEmail')?.value;
+            const password = document.getElementById('regPassword')?.value;
+            const phone = document.getElementById('regPhone')?.value;
+            const address = document.getElementById('regAddress')?.value;
+            const message = document.getElementById('regMessage');
+
+            if (!shopName || !email || !password || !phone || !address) {
+                if (message) {
+                    message.textContent = 'Please fill all fields';
+                    message.className = 'message error';
+                }
+                return;
+            }
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                await set(ref(db, 'shopkeepers/' + user.uid), {
+                    shopName: shopName,
+                    email: email,
+                    phone: phone,
+                    address: address,
+                    userType: 'shopkeeper',
+                    createdAt: Date.now(),
+                    status: 'active'
+                });
+
+                await set(ref(db, 'shops/' + user.uid), {
+                    shopName: shopName,
+                    email: email,
+                    phone: phone,
+                    address: address,
+                    createdAt: Date.now(),
+                    status: 'active'
+                });
+
+                if (message) {
+                    message.textContent = '✅ Registration successful! Your shop has been created.';
+                    message.className = 'message success';
+                }
+
+                setTimeout(() => {
+                    showMainApp();
+                }, 1500);
+            } catch (error) {
+                console.error('Registration error:', error);
+                if (message) {
+                    message.textContent = 'Error: ' + error.message;
+                    message.className = 'message error';
+                }
+            }
+        }
+
+        async function loginShopkeeper() {
+            const email = document.getElementById('email')?.value;
+            const password = document.getElementById('password')?.value;
+            const message = document.getElementById('authMessage');
+
+            if (!email || !password) {
+                if (message) {
+                    message.textContent = 'Please fill all fields';
+                    message.className = 'message error';
+                }
+                return;
+            }
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                const snapshot = await get(ref(db, 'shopkeepers/' + user.uid));
+                if (!snapshot.exists()) {
+                    await signOut(auth);
+                    if (message) {
+                        message.textContent = 'This account is not registered as a shopkeeper';
+                        message.className = 'message error';
+                    }
+                    return;
+                }
+
+                showToast('Login successful!');
+            } catch (error) {
+                console.error('Login error:', error);
+                if (message) {
+                    message.textContent = 'Error: ' + error.message;
+                    message.className = 'message error';
+                }
+            }
+        }
+
+        function quickLogin() {
+            document.getElementById('email').value = 'shopkeeper@example.com';
+            document.getElementById('password').value = 'shop123';
+            loginShopkeeper();
+        }
+
+        async function logout() {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        async function uploadImageToFirebase(file, productId) {
+            try {
+                if (!file) return null;
+
+                // Generate unique filename
+                const filename = `products/${currentUser.uid}/${productId || Date.now()}_${file.name}`;
+                const imageRef = storageRef(storage, filename);
+
+                // Upload file
+                await uploadBytes(imageRef, file);
+
+                // Get download URL
+                const downloadURL = await getDownloadURL(imageRef);
+                return downloadURL;
+            } catch (error) {
+                console.error('Image upload error:', error);
+                return null;
+            }
+        }
+
+        async function addProduct() {
+            const name = document.getElementById('pname')?.value;
+            const price = document.getElementById('price')?.value;
+            const qty = document.getElementById('qty')?.value;
+            const imageUrlInput = document.getElementById('imageUrl')?.value;
+            const message = document.getElementById('productMessage');
+
+            if (!name || !price || !qty) {
+                if (message) {
+                    message.textContent = 'Please fill required fields';
+                    message.className = 'message error';
+                }
+                return;
+            }
+
+            try {
+                const productId = push(ref(db, 'products/' + currentUser.uid)).key;
+                let imageUrl = imageUrlInput || '';
+
+                // If image file is selected, upload it
+                if (selectedImageFile) {
+                    const uploadUrl = await uploadImageToFirebase(selectedImageFile, productId);
+                    if (uploadUrl) {
+                        imageUrl = uploadUrl;
+                    }
+                }
+
+                const product = {
+                    name: name.trim(),
+                    price: parseFloat(price),
+                    qty: parseInt(qty),
+                    imageUrl: imageUrl,
+                    added: Date.now(),
+                    shopId: currentUser.uid,
+                    shopName: (await get(ref(db, 'shopkeepers/' + currentUser.uid + '/shopName'))).val() || 'Shop'
+                };
+
+                await set(ref(db, 'products/' + currentUser.uid + '/' + productId), product);
+
+                const modal = document.querySelector('.modal-overlay');
+                if (modal) modal.remove();
+
+                showToast('✅ Product added successfully!');
+                loadProducts();
+                loadStats();
+                selectedImageFile = null;
+
+            } catch (error) {
+                console.error('Add product error:', error);
+                if (message) {
+                    message.textContent = 'Error: ' + error.message;
+                    message.className = 'message error';
+                }
+            }
+        }
+
+        async function updateProduct() {
+            const name = document.getElementById('editPname')?.value;
+            const price = document.getElementById('editPrice')?.value;
+            const qty = document.getElementById('editQty')?.value;
+            const imageUrlInput = document.getElementById('editImageUrl')?.value;
+            const message = document.getElementById('editProductMessage');
+
+            if (!name || !price || !qty || !currentProductId) {
+                if (message) {
+                    message.textContent = 'Please fill required fields';
+                    message.className = 'message error';
+                }
+                return;
+            }
+
+            try {
+                let imageUrl = imageUrlInput || '';
+
+                // If image file is selected, upload it
+                if (selectedImageFile) {
+                    const uploadUrl = await uploadImageToFirebase(selectedImageFile, currentProductId);
+                    if (uploadUrl) {
+                        imageUrl = uploadUrl;
+                    }
+                }
+
+                const updates = {
+                    name: name.trim(),
+                    price: parseFloat(price),
+                    qty: parseInt(qty),
+                    updated: Date.now()
+                };
+
+                // Only update imageUrl if we have a new one
+                if (imageUrl) {
+                    updates.imageUrl = imageUrl;
+                }
+
+                await update(ref(db, 'products/' + currentUser.uid + '/' + currentProductId), updates);
+
+                const modal = document.querySelector('.modal-overlay');
+                if (modal) modal.remove();
+
+                showToast('✅ Product updated successfully!');
+                loadProducts();
+                loadStats();
+                selectedImageFile = null;
+                currentProductId = null;
+            } catch (error) {
+                console.error('Update product error:', error);
+                if (message) {
+                    message.textContent = 'Error: ' + error.message;
+                    message.className = 'message error';
+                }
+            }
+        }
+
+        function editProduct(productId) {
+            showEditProductModal(productId);
+        }
+
+        async function deleteProduct(productId) {
+            if (!confirm('Are you sure you want to delete this product?')) return;
+
+            try {
+                await remove(ref(db, 'products/' + currentUser.uid + '/' + productId));
+                showToast('Product deleted');
+                loadProducts();
+                loadStats();
+            } catch (error) {
+                console.error('Delete product error:', error);
+                showToast('Error deleting product');
+            }
+        }
+
+        function viewProductQR(productId, productName, productPrice, productQty) {
+            generateProductQR(productId, productName, productPrice, productQty);
+        }
+
+        function downloadShopQR() {
+            const shopQRDiv = document.getElementById('shopQR');
+            if (shopQRDiv) {
+                const canvas = shopQRDiv.querySelector('canvas');
+                if (canvas) {
+                    const link = document.createElement('a');
+                    link.download = 'my-shop-qr.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    showToast('Shop QR downloaded!');
+                } else {
+                    showToast('QR code not generated yet');
+                }
+            }
+        }
+
+        function downloadProductQR(productId, productName) {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                const qrDiv = modal.querySelector('#productQRCode');
+                if (qrDiv) {
+                    const canvas = qrDiv.querySelector('canvas');
+                    if (canvas) {
+                        const link = document.createElement('a');
+                        link.download = `${productName.toLowerCase().replace(/\s+/g, '-')}-qr.png`;
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                        showToast('Product QR downloaded!');
+                    }
+                }
+            }
+        }
+
+        function shareShopQR() {
+            const shopQRDiv = document.getElementById('shopQR');
+            if (shopQRDiv) {
+                const canvas = shopQRDiv.querySelector('canvas');
+                if (canvas) {
+                    canvas.toBlob(blob => {
+                        if (navigator.share && navigator.canShare && navigator.canShare({ files: [blob] })) {
+                            const file = new File([blob], 'shop-qr.png', { type: 'image/png' });
+                            navigator.share({
+                                files: [file],
+                                title: 'My Shop QR Code',
+                                text: 'Scan this QR code to visit my shop!'
+                            });
+                        } else {
+                            const shopUrl = window.location.origin + '/customer.html?shop=' + currentUser.uid;
+                            navigator.clipboard.writeText(shopUrl);
+                            showToast('Shop link copied to clipboard!');
+                        }
+                    });
+                }
+            }
+        }
+
+        function shareProductQR(productId, productName) {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                const qrDiv = modal.querySelector('#productQRCode');
+                if (qrDiv) {
+                    const canvas = qrDiv.querySelector('canvas');
+                    if (canvas) {
+                        canvas.toBlob(blob => {
+                            if (navigator.share && navigator.canShare && navigator.canShare({ files: [blob] })) {
+                                const file = new File([blob], `${productName}-qr.png`, { type: 'image/png' });
+                                navigator.share({
+                                    files: [file],
+                                    title: `${productName} QR Code`,
+                                    text: `Scan to add ${productName} to cart!`
+                                });
+                            } else {
+                                const productUrl = window.location.origin + '/customer.html?product=' + productId + '&shop=' + currentUser.uid;
+                                navigator.clipboard.writeText(productUrl);
+                                showToast('Product link copied!');
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        async function generateOrderBill(orderId) {
+            const order = shopOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Add header
+            doc.setFontSize(20);
+            doc.text('SHOP INVOICE', 105, 20, null, null, 'center');
+
+            doc.setFontSize(10);
+            doc.text(`Invoice #: ${order.id.substring(0, 8)}`, 20, 35);
+            doc.text(`Date: ${new Date(order.timestamp).toLocaleString()}`, 20, 42);
+            const shopSnapshot = await get(ref(db, 'shopkeepers/' + currentUser.uid + '/shopName'));
+            const shopName = shopSnapshot.val() || 'My Shop';
+            doc.text(`Shop: ${shopName}`, 20, 49);
+            doc.text(`Customer: ${order.customerName || 'N/A'}`, 20, 56);
+            doc.text(`Email: ${order.customerEmail || 'N/A'}`, 20, 63);
+
+            // Add items table
+            doc.setFontSize(12);
+            doc.text('ITEMS', 20, 75);
+
+            let y = 85;
+            order.shopItems.forEach((item, index) => {
+                doc.setFontSize(10);
+                doc.text(`${index + 1}. ${item.name}`, 25, y);
+                doc.text(`Qty: ${item.quantity}`, 120, y);
+                doc.text(`Price: ₹${item.price}`, 150, y);
+                doc.text(`Total: ₹${item.price * item.quantity}`, 180, y);
+                y += 8;
+            });
+
+            // Calculate total
+            const total = order.shopItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            // Add total
+            y += 10;
+            doc.setFontSize(12);
+            doc.text('SUBTOTAL:', 120, y);
+            doc.text(`₹${total}`, 180, y);
+
+            y += 8;
+            doc.text('TAX (0%):', 120, y);
+            doc.text('₹0', 180, y);
+
+            y += 8;
+            doc.setFontSize(14);
+            doc.text('TOTAL:', 120, y);
+            doc.text(`₹${total}`, 180, y);
+
+            // Add payment info
+            y += 15;
+            doc.setFontSize(10);
+            doc.text(`Payment Method: ${order.paymentMethod?.toUpperCase() || 'N/A'}`, 20, y);
+            doc.text(`Status: ${order.status?.toUpperCase() || 'COMPLETED'}`, 120, y);
+
+            // Add footer
+            y += 20;
+            doc.setFontSize(8);
+            doc.text('Thank you for your business!', 105, y, null, null, 'center');
+            y += 5;
+            doc.text('Generated by QR Shop System', 105, y, null, null, 'center');
+
+            // Save PDF
+            doc.save(`invoice-${order.id.substring(0, 8)}.pdf`);
+
+            showToast('✅ Bill generated and downloaded!');
+        }
+
+        // Helper Functions
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Make functions globally accessible
+        window.registerShopkeeper = registerShopkeeper;
+        window.loginShopkeeper = loginShopkeeper;
+        window.logout = logout;
+        window.showTab = showTab;
+        window.showAddProductModal = showAddProductModal;
+        window.showRegistrationForm = showRegistrationForm;
+        window.showLoginForm = showLoginForm;
+        window.quickLogin = quickLogin;
+        window.addProduct = addProduct;
+        window.updateProduct = updateProduct;
+        window.editProduct = editProduct;
+        window.deleteProduct = deleteProduct;
+        window.viewProductQR = viewProductQR;
+        window.generateProductQR = generateProductQR;
+        window.downloadShopQR = downloadShopQR;
+        window.downloadProductQR = downloadProductQR;
+        window.shareShopQR = shareShopQR;
+        window.shareProductQR = shareProductQR;
+        window.viewOrderDetails = viewOrderDetails;
+        window.generateOrderBill = generateOrderBill;
+        window.switchImageSource = switchImageSource;
+        window.selectImageSource = selectImageSource;
+        window.selectEditImageSource = selectEditImageSource;
+        window.handleImageUpload = handleImageUpload;
+        window.handleEditImageUpload = handleEditImageUpload;
+        window.scrapeAmazonProduct = scrapeAmazonProduct;
+
+        console.log('Mobile Shopkeeper app initialized with image upload and Amazon import');
+    </script>
+</body>
+</html>
